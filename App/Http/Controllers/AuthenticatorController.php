@@ -216,7 +216,71 @@ class AuthenticatorController extends Controller
 
     public function qr_auth(Request $request): View
     {
-        return view('authentication/qr_auth');
+        $grCodeUri = $_SESSION['grCodeUri'];
+
+        //$grCodeUri = session('flash.grCodeUri');
+        var_dump($_SESSION);
+
+        return view('authentication/qr_auth', ['grCodeUri' => $grCodeUri]);
+    }
+
+    public function qr_auth_code(Request $request): RedirectResponse
+    {
+        $sql = "SELECT secret, email FROM user WHERE username=?";
+        $stmt = $this->databaseService->conn->prepare($sql);
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        if ($result === false) {
+            die("Error executing the query: " . $this->databaseService->conn->error);
+        }
+
+        $user = $result->fetch_assoc();
+
+        $user_secret = $user['secret'];
+        if ($user_secret == ''){
+            function generate_user_secret($length = 16) {
+                $characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'; // Base32 characters
+                $secret = '';
+                for ($i = 0; $i < $length; $i++) {
+                    $secret .= $characters[rand(0, strlen($characters) - 1)];
+                }
+                return $secret;
+            }
+            $user_secret = generate_user_secret();
+            $insertSql = "UPDATE user SET secret = ? WHERE username = ?";
+            $stmt = $this->databaseService->conn->prepare($insertSql);
+            if (!$stmt) {
+                die("Error preparing statement: " . $this->databaseService->conn->error);
+            }
+
+            if (!$stmt->bind_param("ss", $user_secret, $username)) {
+                die("Error binding parameters: " . $stmt->error);
+            }
+            if ($stmt->execute()) {
+                echo "New record created successfully";
+            } else {
+                echo "Error executing query: " . $stmt->error;
+            }
+
+            $stmt->close();
+        }
+// Create TOTP object with the user's secret
+        $otp = TOTP::create($user_secret);
+        $otp->setLabel($user['email']);
+        $otp->setIssuer('TouchTree');
+
+// Generate QR code URI for the user to scan
+        $grCodeUri = $otp->getQrCodeUri(
+            'https://api.qrserver.com/v1/create-qr-code/?data=[DATA]&size=300x300&ecc=M',
+            '[DATA]'
+        );
+
+        //$request->post('grCodeUri', $grCodeUri);
+        $_SESSION['grCodeUri'] = $grCodeUri;
+        return redirect('qr_auth')->with('grCodeUri', $grCodeUri);
+
     }
 
     public function register(Request $request): View

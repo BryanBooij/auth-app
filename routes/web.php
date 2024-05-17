@@ -25,6 +25,12 @@ Router::get('/auth', [AuthenticatorController::class, 'auth'])
 Router::get('/auth_redirect', [AuthenticatorController::class, 'auth_redirect'])
     ->name('auth_redirect');
 
+Router::get('/qr_auth', [AuthenticatorController::class, 'qr_auth'])
+    ->name('qr_auth');
+
+Router::post('/qr_auth_code', [AuthenticatorController::class, 'qr_auth_code'])
+    ->name('qr_auth_code');
+
 Router::get('/change_password', [AuthenticatorController::class, 'change_password'])
     ->name('change_password')
     ->pipes(['auth']);
@@ -54,9 +60,6 @@ Router::get('/logout', [AuthenticatorController::class, 'logout'])
 
 Router::get('/number', [AuthenticatorController::class, 'number'])
     ->name('number');
-
-Router::get('/qr_auth', [AuthenticatorController::class, 'qr_auth'])
-    ->name('qr_auth');
 
 Router::get('/register', [AuthenticatorController::class, 'register'])
     ->name('register');

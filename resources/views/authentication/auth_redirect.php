@@ -2,10 +2,7 @@
 global $conn;
 require_once 'connect.php';
 
-//dd($_SESSION);
-
 $username = session('auth.username');
-//dd($username);
 
 // get information from database needed for authentication
 $sql = "SELECT qr_scanned, email, number FROM user WHERE username=?";
