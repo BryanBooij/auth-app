@@ -7,6 +7,7 @@ use Twilio\Rest\Client;
 require 'config/google.php';
 require 'dependencies.php';
 require 'application.php';
+global $fullNumber
 
 
 ?>
@@ -22,7 +23,7 @@ require 'application.php';
 <body>
 <center>
 <h2>Enter Verification Code</h2>
-<form action="" method="post">
+<form action="<?php echo route('validate_code');?>" method="post">
     <input type="hidden" name="phone" value="<?php echo htmlspecialchars($fullNumber); ?>"> <!-- needs to be added otherwise the number doesn't get saved and put in the query-->
     <label for="verification_code">Verification Code:</label><br>
     <input type="text" id="verification_code" name="verification_code"><br><br>

@@ -82,3 +82,9 @@ Router::get('/send_qr_email', [AuthenticatorController::class, 'send_qr_email'])
 
 Router::post('/number_validation', [AuthenticatorController::class, 'number_validation'])
     ->name('number_validation');
+
+Router::get('/verify', [AuthenticatorController::class, 'showVerificationForm'])
+    ->name('verify');
+
+Router::get('/validate_code', [AuthenticatorController::class, 'validate_code'])
+    ->name('validate_code');

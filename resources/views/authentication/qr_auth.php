@@ -57,6 +57,7 @@ require_once 'connect.php';
 //);
 
 // Display the QR code for the user to scan
+echo $grCodeUri = $_SESSION['grCodeUri'];
 echo "<center><img src='{{ $grCodeUri }}' alt='QR Code' class='qr_code'><br></center>";
 
 // Inform the user that 2FA setup is complete

@@ -359,8 +359,29 @@ class AuthenticatorController extends Controller
         return view('authentication/send_email');
     }
 
+    public function validate_code(Request $request): View
+    {
+
+        return view('authentication/home');
+    }
+
+    public function showVerificationForm(Request $request): View
+    {
+        return view('authentication/sms');
+    }
+
     public function sms(Request $request): View
     {
+        // Call the number_validation method
+        $response = $this->number_validation($request);
+
+
+//        if ($response instanceof RedirectResponse) {
+//
+//            return $response;
+//        }
+
+
         return view('authentication/sms');
     }
 
@@ -437,74 +458,71 @@ class AuthenticatorController extends Controller
         $authToken = config("google.smsAuthToken");
         $twilio = new Client($accountSid, $authToken);
 
+        // Get the phone number and country code from the request
         $number = $_POST['phone'];
         $region = $_POST['country'];
         $fullNumber = $region . $number;
 
-        $userPhoneNumber = $fullNumber;
-        if (validatePhoneNumber($userPhoneNumber)) {
-            echo "";
+        if ($this->validatePhoneNumber($fullNumber, $twilio, $request)) {
+            return redirect('verify');
         } else {
-            echo "Invalid phone number";
+            return redirect('number')->with('error', 'Invalid phone number');
         }
+    }
 
-        function validatePhoneNumber($phoneNumber)
-        {
-            global $username, $conn, $twilio;
-            if (preg_match('/^\+?\d{1,3}\s?\(?\d{1,4}\)?[-.\s]?\d{1,10}$/', $phoneNumber)) {
-                if ($_SERVER["REQUEST_METHOD"] == "POST") {
-                    if (isset($_POST['verification_code'])) {
-                        $userVerificationCode = trim($_POST['verification_code']);
+    public function validatePhoneNumber($phoneNumber, $twilio, Request $request): RedirectResponse
+    {
+        if (preg_match('/^\+?\d{1,3}\s?\(?\d{1,4}\)?[-.\s]?\d{1,10}$/', $phoneNumber)) {
+            if (isset($_POST['verification_code'])) {
+                $userVerificationCode = trim($_POST['verification_code']);
 
-                        if ($userVerificationCode == $_SESSION['verification_code']) {
-                            $stmt = $conn->prepare("UPDATE user SET number = ? WHERE username = ?");
-                            $stmt->bind_param("ss", $phoneNumber, $username);
-                            $stmt->execute();
-                            $stmt->close();
-                            $_SESSION['auth'] = true;
-                            redirect('home')->send();
-                            exit();
-                        } else {
-                            echo "Verification code is incorrect.";
-                        }
-                    }
+                if ($userVerificationCode == session('verification_code')) {
+                    $this->updateUserPhoneNumber($phoneNumber);
+                    $_SESSION['auth'] = true;
+                    return redirect('home');
+
+                } else {
+                    return redirect('number')->with('error', 'Verification code is incorrect');
                 }
-
-                function generateVerificationCode()
-                {
-                    return mt_rand(100000, 999999);
-                }
-
-                $verificationCode = generateVerificationCode();
-                $_SESSION['verification_code'] = $verificationCode;
-                // phone message to display to user
-                $message = "Your verification code is: $verificationCode";
-
-                try {
-                    $twilio->messages->create(
-                        $phoneNumber,
-                        [
-                            "body" => $message,
-                            "from" => "TouchTree"
-                        ]
-                    );
-                    echo "<center>Verification code sent successfully to $phoneNumber</center>";
-                } catch (Exception $e) {
-                    //echo "Error: " . $e->getMessage();
-                    $error_message = "An error has occurred while sending SMS to " . $phoneNumber . " please check number and try again";
-                    $_SESSION['error'] = $error_message;
-                    return redirect('number');
-                }
-                return true;
-            } else {
-                $error_message = "Invalid phone number";
-                $_SESSION['error'] = $error_message;
-                redirect('number')->send();
-                return true;
             }
-        }
 
-        return true;
+            $verificationCode = $this->generateVerificationCode();
+            $_SESSION['verification_code'] = $verificationCode;
+            $message = "Your verification code is: $verificationCode";
+
+            try {
+                $twilio->messages->create(
+                    $phoneNumber,
+                    [
+                        "body" => $message,
+                        "from" => "TouchTree"
+                    ]
+                );
+                echo "<center>Verification code sent successfully to $phoneNumber</center>";
+                return redirect('home');
+            } catch (Exception $e) {
+                $_SESSION['error'] = "An error occurred while sending SMS to $phoneNumber. Please check the number and try again.";
+                return redirect('number')->with('error', 'Verification code is incorrect');
+            }
+        } else {
+            $_SESSION['error'] = "Invalid phone number";
+            return redirect('number')->with('error', 'Verification code is incorrect');
+        }
+    }
+
+    private function generateVerificationCode()
+    {
+        return mt_rand(100000, 999999);
+    }
+
+    private function updateUserPhoneNumber($phoneNumber)
+    {
+        global $username, $conn;
+
+        $stmt = $conn->prepare("UPDATE user SET number = ? WHERE username = ?");
+        $stmt->bind_param("ss", $phoneNumber, $username);
+        $stmt->execute();
+        $stmt->close();
     }
 }
 
