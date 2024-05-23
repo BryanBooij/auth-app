@@ -216,12 +216,15 @@ class AuthenticatorController extends Controller
 
     public function qr_auth(Request $request): View
     {
-        $grCodeUri = $_SESSION['grCodeUri'];
+        //$grCodeUri = $_SESSION['grCodeUri'];
+//        $grCodeUri = session('grCodeUri');
+        $grCodeUri = $request->get('grCodeUri');
 
         //$grCodeUri = session('flash.grCodeUri');
-        var_dump($_SESSION);
+        var_dump($request->get('grCodeUri'));
+        var_dump(session('flash.grCodeUri'));
 
-        return view('authentication/qr_auth', ['grCodeUri' => $grCodeUri]);
+        return view('authentication/home', ['grCodeUri' => $grCodeUri]);
     }
 
     public function qr_auth_code(Request $request): RedirectResponse
@@ -279,7 +282,9 @@ class AuthenticatorController extends Controller
 
         //$request->post('grCodeUri', $grCodeUri);
         $_SESSION['grCodeUri'] = $grCodeUri;
-        return redirect('qr_auth')->with('grCodeUri', $grCodeUri);
+        session()->flash('grCodeUri', '123');
+//        return redirect('qr_auth')->with('grCodeUri', $grCodeUri);
+        return redirect(route('qr_auth') . '?grCodeUri=' . $grCodeUri);
 
     }
 

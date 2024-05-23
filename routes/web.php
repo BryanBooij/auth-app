@@ -31,6 +31,9 @@ Router::get('/qr_auth', [AuthenticatorController::class, 'qr_auth'])
 Router::post('/qr_auth_code', [AuthenticatorController::class, 'qr_auth_code'])
     ->name('qr_auth_code');
 
+Router::post('/auth_code', [AuthenticatorController::class, 'auth_code'])
+    ->name('auth_code');
+
 Router::get('/change_password', [AuthenticatorController::class, 'change_password'])
     ->name('change_password')
     ->pipes(['auth']);
@@ -72,9 +75,6 @@ Router::get('/send_email', [AuthenticatorController::class, 'send_email'])
     ->pipes(['auth']);
 
 Router::post('/sms', [AuthenticatorController::class, 'sms'])->name('sms');
-
-Router::post('/auth_code', [AuthenticatorController::class, 'auth_code'])
-    ->name('auth_code');
 
 Router::get('/send_qr_email', [AuthenticatorController::class, 'send_qr_email'])
     ->name('send_qr_email')
