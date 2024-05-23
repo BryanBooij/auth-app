@@ -57,7 +57,7 @@ require_once 'connect.php';
 //);
 
 // Display the QR code for the user to scan
-echo $grCodeUri = $_SESSION['grCodeUri'];
+echo $grCodeUri = session('flash.grCodeUri');
 echo "<center><img src='{{ $grCodeUri }}' alt='QR Code' class='qr_code'><br></center>";
 
 // Inform the user that 2FA setup is complete
@@ -106,7 +106,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <body>
 <center>
 <!-- HTML form -->
-    <img src="{{ $grCodeUri }}" alt="QR Code">
+<!--    <img src="{{ $grCodeUri }}" alt="QR Code">-->
     <form method="post" action="<?php echo route('auth_code') ?>">
         <label for="otp">Enter 6-digit code:</label><br>
         <input type="text" id="otp" name="otp"><br>
@@ -114,6 +114,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </form>
     <a href="<?php echo route('auth_redirect');?>"><button>Back</button></a>
     <?php
+
+
+
     if (isset($_SESSION['error_message'])) {
         echo '<p style="color: red;">' . $_SESSION['error_message'] . '</p>';
         unset($_SESSION['error_message']);
