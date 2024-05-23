@@ -165,8 +165,7 @@ class AuthenticatorController extends Controller
     public function auth_code(Request $request): RedirectResponse
     {
         $username = session('auth.username');
-        dd($username);
-        $sql = "SELECT secret, email FROM user WHERE username=?";
+        $sql = "SELECT secret, email, qr_scanned FROM user WHERE username=?";
         $stmt = $this->databaseService->conn->prepare($sql);
         $stmt->bind_param("s", $username);
         $stmt->execute();
@@ -180,28 +179,33 @@ class AuthenticatorController extends Controller
         $user_secret = $user['secret'];
         $email = $user['email'];
         $secret = $user_secret;
+        $qr_scanned = $user['qr_scanned'];
 
 //creates from user_secret the correct code
         $otp = TOTP::create($secret);
 
-        $insertsql = "UPDATE user SET qr_scanned = 1 WHERE username = ?";
-        $stmt = $this->databaseService->conn->prepare($insertsql);
-        $stmt->bind_param("s", $username);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $stmt->close();
+
 
 //checks if user input is correct
         $input_otp = $_POST['otp'];
         $verification_result = $otp->verify($input_otp);
         if ($verification_result) {
+            $insertsql = "UPDATE user SET qr_scanned = 1 WHERE username = ?";
+            $stmt = $this->databaseService->conn->prepare($insertsql);
+            $stmt->bind_param("s", $username);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $stmt->close();
             echo "OTP verified successfully!";
             $_SESSION['logged_in'] = true;
             $_SESSION['auth'] = true;
             return redirect('home');
-        } else {
+        } elseif ($qr_scanned == 1) {
             $_SESSION['error_message'] = 'Invalid Authentication code. Please try again.';
             return redirect('auth');
+        } else{
+            $_SESSION['error_message'] = 'Invalid Authentication code. Please try again.';
+            return redirect('qr_auth');
         }
     }
 
@@ -352,7 +356,46 @@ class AuthenticatorController extends Controller
 
     public function send_email(Request $request): View
     {
-        return view('authentication/send_email');
+        sendEmail($email, $randomPassword, $username);
+        function sendEmail($email, $randomPassword, $username)
+        {
+            global $config;
+            $mail = new PHPMailer(true);
+
+            try {
+                $mail_FROM = 'bryan@touchtree.tech';
+                $user_RCPT = $email;
+                $user_password = $randomPassword;
+                $user_name = $email;
+                $display_name = $username;
+
+                // SMTP server settings
+                $mail->isSMTP();
+                $mail->Host = 'smtp.elasticemail.com';
+                $mail->SMTPAuth = true;
+                $mail->Username = config("google.username");
+                $mail->Password = config("google.password");
+                $mail->SMTPSecure = config("google.smtpSecure");
+                $mail->Port = config("google.port");
+
+                // Sender and recipient settings
+                $mail->setFrom($mail_FROM);
+                $mail->addAddress($user_RCPT);
+
+                // Email content
+                $mail->isHTML(true);
+                $mail->Subject = 'Successful login';
+                $mail->Body = "<p>Successful login. <br> Your username is: " . $user_name . " <br> Your display name is: " . $display_name . " <br> Your password is: " . $user_password . " <br> you can now change you're password</p>";
+
+                // Send email + error message if needed
+                $mail->send();
+                echo 'Email sent successfully.';
+            } catch (Exception $e) {
+                echo 'Failed to send email. Error: ' . $mail->ErrorInfo;
+            }
+            return 0;
+        }
+        return view('authentication/auth');
     }
 
     public function validate_code(Request $request): View

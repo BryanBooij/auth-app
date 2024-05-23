@@ -28,7 +28,7 @@ Router::get('/auth_redirect', [AuthenticatorController::class, 'auth_redirect'])
 Router::get('/qr_auth', [AuthenticatorController::class, 'qr_auth'])
     ->name('qr_auth');
 
-Router::get('/auth_code', [AuthenticatorController::class, 'auth_code'])
+Router::post('/auth_code', [AuthenticatorController::class, 'auth_code'])
     ->name('auth_code');
 
 Router::get('/change_password', [AuthenticatorController::class, 'change_password'])
