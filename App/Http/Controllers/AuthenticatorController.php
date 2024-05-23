@@ -407,6 +407,7 @@ class AuthenticatorController extends Controller
             if ($userVerificationCode == session('verification_code')) {
                 $this->updateUserPhoneNumber($phoneNumber);
                 $_SESSION['auth'] = true;
+                session('logged_in', true);
                 return redirect('home');
 
             } else {
