@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 require 'vendor/autoload.php';
+require base_path('/vendor/autoload.php');
+include 'autoload.php';
 
 use App\Http\Requests\ChangePasswordUserRequest;
 use App\Services\DatabaseService;
@@ -10,6 +12,8 @@ use Framework\Http\RedirectResponse;
 use Framework\Http\Request;
 use Framework\Routing\Controller;
 use Framework\Session\Session;
+use Google_Client;
+use Google_Service_Oauth2;
 use OTPHP\TOTP;
 use PHPMailer\PHPMailer\PHPMailer;
 use Twilio\Rest\Client;
@@ -125,7 +129,7 @@ class AuthenticatorController extends Controller
 
     public function google(Request $request): View
     {
-        return view('authentication/google');
+        return View('authentication/google');
     }
 
     public function google_logout(Request $request): View
@@ -272,13 +276,8 @@ class AuthenticatorController extends Controller
             '[DATA]'
         );
 
-        //$request->post('grCodeUri', $grCodeUri);
         $_SESSION['grCodeUri'] = $grCodeUri;
         session()->flash('grCodeUri', $grCodeUri);
-
-        //$grCodeUri = session('flash.grCodeUri');
-//        var_dump($request->get('grCodeUri'));
-//        var_dump(session('flash.grCodeUri'));
 
         return view('authentication/qr_auth', ['grCodeUri' => $grCodeUri]);
     }
@@ -354,10 +353,9 @@ class AuthenticatorController extends Controller
         return redirect('register');
     }
 
-    public function send_email(Request $request): View
+    public function send_email(Request $request): RedirectResponse
     {
-        sendEmail($email, $randomPassword, $username);
-        function sendEmail($email, $randomPassword, $username)
+        function sendEmail($email, $randomPassword, $username): RedirectResponse
         {
             global $config;
             $mail = new PHPMailer(true);
@@ -393,33 +391,36 @@ class AuthenticatorController extends Controller
             } catch (Exception $e) {
                 echo 'Failed to send email. Error: ' . $mail->ErrorInfo;
             }
-            return 0;
+            return view('authentication/auth');
         }
         return view('authentication/auth');
     }
 
-    public function validate_code(Request $request): View
+    public function validate_code(Request $request): RedirectResponse
     {
+        $phoneNumber = session('auth.phoneNumber');
+//        $phoneNumber = $request->post('phone');
+        //dd($request->post('verification_code'));
+        if ($request->post('verification_code')) {
+            $userVerificationCode = trim($_POST['verification_code']);
 
-        return view('authentication/home');
-    }
+            if ($userVerificationCode == session('verification_code')) {
+                $this->updateUserPhoneNumber($phoneNumber);
+                $_SESSION['auth'] = true;
+                return redirect('home');
 
-    public function showVerificationForm(Request $request): View
-    {
-        return view('authentication/sms');
+            } else {
+                return redirect('sms')->with('error', 'Verification code is incorrect');
+            }
+        }
+
+        return redirect('authentication/home');
     }
 
     public function sms(Request $request): View
     {
         // Call the number_validation method
         $response = $this->number_validation($request);
-
-
-//        if ($response instanceof RedirectResponse) {
-//
-//            return $response;
-//        }
-
 
         return view('authentication/sms');
     }
@@ -503,7 +504,7 @@ class AuthenticatorController extends Controller
         $fullNumber = $region . $number;
 
         if ($this->validatePhoneNumber($fullNumber, $twilio, $request)) {
-            return redirect('verify');
+            return redirect('validate_code');
         } else {
             return redirect('number')->with('error', 'Invalid phone number');
         }
@@ -512,21 +513,8 @@ class AuthenticatorController extends Controller
     public function validatePhoneNumber($phoneNumber, $twilio, Request $request): RedirectResponse
     {
         if (preg_match('/^\+?\d{1,3}\s?\(?\d{1,4}\)?[-.\s]?\d{1,10}$/', $phoneNumber)) {
-            if (isset($_POST['verification_code'])) {
-                $userVerificationCode = trim($_POST['verification_code']);
-
-                if ($userVerificationCode == session('verification_code')) {
-                    $this->updateUserPhoneNumber($phoneNumber);
-                    $_SESSION['auth'] = true;
-                    return redirect('home');
-
-                } else {
-                    return redirect('number')->with('error', 'Verification code is incorrect');
-                }
-            }
-
             $verificationCode = $this->generateVerificationCode();
-            $_SESSION['verification_code'] = $verificationCode;
+            session('verification_code', $verificationCode);
             $message = "Your verification code is: $verificationCode";
 
             try {
@@ -540,12 +528,12 @@ class AuthenticatorController extends Controller
                 echo "<center>Verification code sent successfully to $phoneNumber</center>";
                 return redirect('home');
             } catch (Exception $e) {
-                $_SESSION['error'] = "An error occurred while sending SMS to $phoneNumber. Please check the number and try again.";
-                return redirect('number')->with('error', 'Verification code is incorrect');
+                session("message", "An error occurred while sending SMS to $phoneNumber. Please check the number and try again.");
+                return redirect('number');
             }
         } else {
-            $_SESSION['error'] = "Invalid phone number";
-            return redirect('number')->with('error', 'Verification code is incorrect');
+            session("message", "Invalid phone number");
+            return redirect('number');
         }
     }
 
@@ -556,9 +544,9 @@ class AuthenticatorController extends Controller
 
     private function updateUserPhoneNumber($phoneNumber)
     {
-        global $username, $conn;
+        global $username;
 
-        $stmt = $conn->prepare("UPDATE user SET number = ? WHERE username = ?");
+        $stmt = $this->databaseService->conn->prepare("UPDATE user SET number = ? WHERE username = ?");
         $stmt->bind_param("ss", $phoneNumber, $username);
         $stmt->execute();
         $stmt->close();

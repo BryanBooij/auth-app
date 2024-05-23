@@ -98,7 +98,7 @@ if (isset($_GET['code'])) {
     session('auth.username', $userEmail);
     session('auth.password', $password);
     // send email to Google user with temp password (optional to use)
-    //sendEmail($email, $randomPassword, $name);
+    sendEmail($email, $randomPassword, $name);
     redirect('auth_redirect')->send();
     session('auth.logged_in', true);
 } else {
