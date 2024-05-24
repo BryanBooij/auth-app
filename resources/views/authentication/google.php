@@ -1,16 +1,14 @@
 <?php
-//session_start();
+//this is the only file outside of the controller as google can be annoying sometimes
 global $conn;
 require base_path('/vendor/autoload.php');
 include 'autoload.php';
-//include_once 'send_email.php';
 include_once 'connect.php';
 
 //google connection
 $client = new Google_Client();
-$client->setAuthConfig(base_path('/secret/client_secret.json')); //login credentials for Google connection
-$client->setRedirectUri('http://localhost/framework/google');
-//$client->setRedirectUri(base_path('/framework/google.php'));
+$client->setAuthConfig(base_path('/secret/client_secret.json')); // login credentials for Google connection
+$client->setRedirectUri('http://localhost/framework/google'); // has to be full url or doesn't work this url has to be registered in google cloud console
 $client->addScope(['openid', 'profile', 'email']);
 
 if (isset($_GET['code'])) {
@@ -20,17 +18,18 @@ if (isset($_GET['code'])) {
         redirect('login')->send(); //redirect login
         exit();
     }
-    $accessToken = $client->getAccessToken();
+    $accessToken = $client->getAccessToken(); // get google access token for access to application
 
     $googleOAuthService = new Google_Service_Oauth2($client);
     $userInfo = $googleOAuthService->userinfo->get();
-    $email = $userInfo->getEmail();
-    $name = strtolower($userInfo->getGivenName()); // lowercase string for easier access for users
+    $email = $userInfo->getEmail(); // store google email in local variable for database registration
+    $name = strtolower($userInfo->getGivenName()); // google users also have a username on their account that is called getGivenName. lowercase string for easier access for users (optional)
 
     function generateRandomPassword($length = 12) {
+        //generate random password for google users this funtion is optional
         $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         $password = '';
-        // as long as $i is smaller than 12 continue for loop for random numbers
+        // password length will be 12 this is also optional and can be changed at any time.
         for ($i = 0; $i < $length; $i++) {
             $password .= $chars[random_int(0, strlen($chars) - 1)];
         }
@@ -38,6 +37,7 @@ if (isset($_GET['code'])) {
     }
 
     function generate_user_secret($length = 16) {
+        // generate user secret this function is necessary for the authenticator app function to work.
         $characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'; // Base32 secret
         $secret = '';
         for ($i = 0; $i < $length; $i++) {
@@ -48,7 +48,7 @@ if (isset($_GET['code'])) {
 
     // create temp password for Google users
     $randomPassword = generateRandomPassword();
-    $hashed_password = password_hash($randomPassword, PASSWORD_DEFAULT);
+    $hashed_password = password_hash($randomPassword, PASSWORD_DEFAULT); // hash password for protection
     // create user_secret for authenticator qr
     $user_secret = generate_user_secret();
 
@@ -97,8 +97,7 @@ if (isset($_GET['code'])) {
     session('auth.logged_in', true);
     session('auth.username', $userEmail);
     session('auth.password', $password);
-    // send email to Google user with temp password (optional to use)
-    sendEmail($email, $randomPassword, $name);
+    //send_email() this function is optional
     redirect('auth_redirect')->send();
     session('auth.logged_in', true);
 } else {

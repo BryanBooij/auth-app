@@ -81,6 +81,7 @@ require_once 'vendor/autoload.php';
     </form>
 </center>
 <?php
+// display error if number is invalid
 if (session('error_number')) {
     echo '<center><p style="color: red;">' . session('error_number') . '</center></p>';
     //session('error');
@@ -88,7 +89,7 @@ if (session('error_number')) {
 ?>
 
 <script>
-    // function for updating countryCode value
+    // function for updating countryCode value this ensures a easier way for users to see what country code gets put in front of the number
     function updateCountryCode() {
         document.getElementById("countryCode").value = document.getElementById("country").value;
     }

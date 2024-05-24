@@ -1,7 +1,6 @@
 <?php
 //connection to local database change to online database if needed
 require 'config/google.php';
-//require 'dependencies.php';
 require 'application.php';
 // database login information for connection
 

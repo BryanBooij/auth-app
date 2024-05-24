@@ -30,10 +30,7 @@ session('logged_in', true);
     </div>
 
     <?php
-
-    // error('abc')
-    // in controller: view() / redirect()->with_errors(['abc' => 'verkeerd'])
-
+    // error message
     if (isset($_SESSION['error_message'])) {
         echo '<p style="color: red;">' . $_SESSION['error_message'] . '</p>';
         unset($_SESSION['error_message']);
