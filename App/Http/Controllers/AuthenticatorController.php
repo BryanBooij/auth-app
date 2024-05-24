@@ -218,11 +218,6 @@ class AuthenticatorController extends Controller
         return view('authentication/logout');
     }
 
-    public function number(Request $request): View
-    {
-        return view('authentication/number');
-    }
-
     public function qr_auth(Request $request): View
     {
         $username = session('auth.username');
@@ -396,36 +391,6 @@ class AuthenticatorController extends Controller
         return view('authentication/auth');
     }
 
-    public function validate_code(Request $request): RedirectResponse
-    {
-        $phoneNumber = session('auth.phoneNumber');
-//        $phoneNumber = $request->post('phone');
-        //dd($request->post('verification_code'));
-        if ($request->post('verification_code')) {
-            $userVerificationCode = trim($_POST['verification_code']);
-
-            if ($userVerificationCode == session('verification_code')) {
-                $this->updateUserPhoneNumber($phoneNumber);
-                $_SESSION['auth'] = true;
-                session('logged_in', true);
-                return redirect('home');
-
-            } else {
-                return redirect('sms')->with('error', 'Verification code is incorrect');
-            }
-        }
-
-        return redirect('authentication/home');
-    }
-
-    public function sms(Request $request): View
-    {
-        // Call the number_validation method
-        $response = $this->number_validation($request);
-
-        return view('authentication/sms');
-    }
-
     public function send_qr_email_method($email): bool
     {
         //fucker
@@ -492,6 +457,39 @@ class AuthenticatorController extends Controller
         }
     }
 
+    public function number(Request $request): View
+    {
+        return view('authentication/number');
+    }
+
+    public function validate_code(Request $request): RedirectResponse
+    {
+        $phoneNumber = session('auth.phoneNumber');
+        if ($request->post('verification_code')) {
+            $userVerificationCode = trim($_POST['verification_code']);
+
+            if ($userVerificationCode == session('verification_code')) {
+                $this->updateUserPhoneNumber($phoneNumber);
+                $_SESSION['auth'] = true;
+                session('logged_in', true);
+                return redirect('home');
+            } else {
+                session('error_code', 'Verification code is incorrect');
+                return redirect('sms');
+            }
+        }
+
+        return redirect('authentication/home');
+    }
+
+    public function sms(Request $request): View
+    {
+        // Call the number_validation method
+        $this->number_validation($request);
+
+        return view('authentication/sms');
+    }
+
 
     public function number_validation(Request $request): RedirectResponse
     {
@@ -500,18 +498,19 @@ class AuthenticatorController extends Controller
         $twilio = new Client($accountSid, $authToken);
 
         // Get the phone number and country code from the request
-        $number = $_POST['phone'];
-        $region = $_POST['country'];
+        $number = $request->post('phone');
+        $region = $request->post('country');
         $fullNumber = $region . $number;
 
         if ($this->validatePhoneNumber($fullNumber, $twilio, $request)) {
-            return redirect('validate_code');
+            return redirect('sms');
         } else {
-            return redirect('number')->with('error', 'Invalid phone number');
+            session('error_number', 'Invalid number');
+            return redirect('number');
         }
     }
 
-    public function validatePhoneNumber($phoneNumber, $twilio, Request $request): RedirectResponse
+    public function validatePhoneNumber($phoneNumber, $twilio, Request $request): Bool
     {
         if (preg_match('/^\+?\d{1,3}\s?\(?\d{1,4}\)?[-.\s]?\d{1,10}$/', $phoneNumber)) {
             $verificationCode = $this->generateVerificationCode();
@@ -527,30 +526,34 @@ class AuthenticatorController extends Controller
                     ]
                 );
                 echo "<center>Verification code sent successfully to $phoneNumber</center>";
-                return redirect('home');
+                return 1;
+//                return redirect('home');
             } catch (Exception $e) {
                 session("message", "An error occurred while sending SMS to $phoneNumber. Please check the number and try again.");
-                return redirect('number');
+                return 0;
+//                return redirect('number');
             }
         } else {
             session("message", "Invalid phone number");
-            return redirect('number');
+            return 0;
+//            return redirect('number');
         }
     }
 
-    private function generateVerificationCode()
+    public function updateUserPhoneNumber($phoneNumber)
     {
-        return mt_rand(100000, 999999);
-    }
-
-    private function updateUserPhoneNumber($phoneNumber)
-    {
-        global $username;
+        $username = session('auth.username');
+        dd($username, $phoneNumber);
 
         $stmt = $this->databaseService->conn->prepare("UPDATE user SET number = ? WHERE username = ?");
         $stmt->bind_param("ss", $phoneNumber, $username);
         $stmt->execute();
         $stmt->close();
+    }
+
+    private function generateVerificationCode()
+    {
+        return mt_rand(100000, 999999);
     }
 }
 

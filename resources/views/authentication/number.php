@@ -16,7 +16,7 @@ require_once 'vendor/autoload.php';
 <body>
 <center>
     <img src="img/lock.png" width="200" height="200"><br><br>
-    <form action="<?php echo route('sms');?>" method="post" id="phoneForm">
+    <form action="<?php echo route('number_validation');?>" method="post" id="phoneForm">
         <label for="country">Country:</label>
         <select id="country" name="country" onchange="updateCountryCode()">
             <option value="+31">🇳🇱 (+31) Netherlands</option>
@@ -81,9 +81,9 @@ require_once 'vendor/autoload.php';
     </form>
 </center>
 <?php
-if (isset($_SESSION['error'])) {
-    echo '<center><p style="color: red;">' . $_SESSION['error'] . '</center></p>';
-    unset($_SESSION['error']);
+if (session('error')) {
+    echo '<center><p style="color: red;">' . session('error_number') . '</center></p>';
+    //session('error');
 }
 ?>
 

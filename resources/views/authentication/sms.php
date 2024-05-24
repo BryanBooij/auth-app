@@ -29,6 +29,14 @@ global $fullNumber
     <input type="text" id="verification_code" name="verification_code"><br><br>
     <input type="submit" value="Submit">
 </form>
+
+<?php
+if (session('error')) {
+    echo '<center><p style="color: red;">' . session('error_code') . '</center></p>';
+    //session('error');
+}
+?>
+
 </center>
 </body>
 </html>

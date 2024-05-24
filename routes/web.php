@@ -71,7 +71,7 @@ Router::get('/send_email', [AuthenticatorController::class, 'send_email'])
     ->name('send_email')
     ->pipes(['auth']);
 
-Router::post('/sms', [AuthenticatorController::class, 'sms'])->name('sms');
+Router::get('/sms', [AuthenticatorController::class, 'sms'])->name('sms');
 
 Router::get('/send_qr_email', [AuthenticatorController::class, 'send_qr_email'])
     ->name('send_qr_email')
