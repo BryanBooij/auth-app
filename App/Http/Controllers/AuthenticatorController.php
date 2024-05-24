@@ -503,6 +503,7 @@ class AuthenticatorController extends Controller
         $fullNumber = $region . $number;
 
         if ($this->validatePhoneNumber($fullNumber, $twilio, $request)) {
+            session(['auth.phoneNumber' => $fullNumber]);
             return redirect('sms');
         } else {
             session('error_number', 'Invalid number');
@@ -543,8 +544,6 @@ class AuthenticatorController extends Controller
     public function updateUserPhoneNumber($phoneNumber)
     {
         $username = session('auth.username');
-        dd($username, $phoneNumber);
-
         $stmt = $this->databaseService->conn->prepare("UPDATE user SET number = ? WHERE username = ?");
         $stmt->bind_param("ss", $phoneNumber, $username);
         $stmt->execute();
