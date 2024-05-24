@@ -53,7 +53,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         session('auth.password', $password);
         redirect('auth_redirect')->send();
     } else {
-        header("Location: register.php?error=" . urlencode($error_message));
+        redirect('register');
     }
 }
 

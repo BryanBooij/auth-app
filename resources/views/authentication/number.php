@@ -81,7 +81,7 @@ require_once 'vendor/autoload.php';
     </form>
 </center>
 <?php
-if (session('error')) {
+if (session('error_number')) {
     echo '<center><p style="color: red;">' . session('error_number') . '</center></p>';
     //session('error');
 }

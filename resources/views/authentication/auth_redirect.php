@@ -2,25 +2,8 @@
 global $conn;
 require_once 'connect.php';
 
-$username = session('auth.username');
-
-// get information from database needed for authentication
-$sql = "SELECT qr_scanned, email, number FROM user WHERE username=?";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("s", $username);
-$stmt->execute();
-$result = $stmt->get_result();
-
-if ($result === false) {
-    die("Error executing the query: " . $conn->error);
-}
-
-$user = $result->fetch_assoc();
-$email = $user['email'];
-$qr = $user['qr_scanned'];
-$number = $user['number'];
-//session('auth.number', $number);
-$result = $conn->query($sql);
+$qr = session('qr_scanned');
+$number = session('number');
 
 ?>
 <!doctype html>

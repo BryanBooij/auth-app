@@ -31,9 +31,8 @@ global $fullNumber
 </form>
 
 <?php
-if (session('error')) {
+if (session('error_code')) {
     echo '<center><p style="color: red;">' . session('error_code') . '</center></p>';
-    //session('error');
 }
 ?>
 

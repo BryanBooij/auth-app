@@ -65,6 +65,26 @@ class AuthenticatorController extends Controller
 
     public function auth_redirect(Request $request): View
     {
+        $username = session('auth.username');
+
+// get information from database needed for authentication
+        $sql = "SELECT qr_scanned, email, number FROM user WHERE username=?";
+        $stmt = $this->databaseService->conn->prepare($sql);
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        if ($result === false) {
+            die("Error executing the query: " . $this->databaseService->conn->error);
+        }
+
+        $user = $result->fetch_assoc();
+        session(['email' => $user['email']]);
+        session(['qr_scanned'=> $user['qr_scanned']]);
+        session(['number'=> $user['number']]);
+//session('auth.number', $number);
+        $result = $this->databaseService->conn->query($sql);
+
         return view('authentication/auth_redirect');
     }
 
@@ -498,9 +518,27 @@ class AuthenticatorController extends Controller
         $twilio = new Client($accountSid, $authToken);
 
         // Get the phone number and country code from the request
-        $number = $request->post('phone');
-        $region = $request->post('country');
-        $fullNumber = $region . $number;
+        if ($request->post('phone') || $request->post('country')){
+            $number = $request->post('phone');
+            $region = $request->post('country');
+            $fullNumber = $region . $number;
+        } else {
+            // extract number from database
+            $username = session('auth.username');
+            $sql = "SELECT number FROM user WHERE username=?";
+            $stmt = $this->databaseService->conn->prepare($sql);
+            $stmt->bind_param("s", $username);
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            if ($result === false) {
+                die("Error executing the query: " . $this->databaseService->conn->error);
+            }
+
+            $user = $result->fetch_assoc();
+            $fullNumber = $user['number'];
+        }
+
 
         if ($this->validatePhoneNumber($fullNumber, $twilio, $request)) {
             session(['auth.phoneNumber' => $fullNumber]);
@@ -528,16 +566,13 @@ class AuthenticatorController extends Controller
                 );
                 echo "<center>Verification code sent successfully to $phoneNumber</center>";
                 return 1;
-//                return redirect('home');
             } catch (Exception $e) {
                 session("message", "An error occurred while sending SMS to $phoneNumber. Please check the number and try again.");
                 return 0;
-//                return redirect('number');
             }
         } else {
             session("message", "Invalid phone number");
             return 0;
-//            return redirect('number');
         }
     }
 
